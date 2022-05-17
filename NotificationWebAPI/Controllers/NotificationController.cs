@@ -22,12 +22,12 @@ namespace NotificationWebAPI.Controllers
         private readonly IConfiguration _configuration;
         private readonly NotificationDBContext dbContext;
 
-        public NotificationController(IConfiguration configuration,NotificationDBContext dbContext)
+        public NotificationController(IConfiguration configuration, NotificationDBContext dbContext)
         {
             _configuration = configuration;
             this.dbContext = dbContext;
         }
-        
+
 
 
         [HttpGet]
@@ -42,89 +42,57 @@ namespace NotificationWebAPI.Controllers
             return myData;
         }
 
+
         [HttpPost]
-        public JsonResult Post(Notification not)
+        public async Task<ActionResult<Notification>> PostNotification(Notification not)
         {
-            string query = @"
-                           insert into dbo.Notification
-                           values (@Title)
-                            ";
+            //_context.Notifications.Add(notification);
+            //await _context.SaveChangesAsync();
+            dbContext.Notification.Add(not);
+            await dbContext.SaveChangesAsync();
 
-            DataTable table = new DataTable();
-            string sqlDataSource = _configuration.GetConnectionString("NotificationAppCon");
-            SqlDataReader myReader;
-            using (SqlConnection myCon = new SqlConnection(sqlDataSource))
-            {
-                myCon.Open();
-                using (SqlCommand myCommand = new SqlCommand(query, myCon))
-                {
-                    myCommand.Parameters.AddWithValue("@Title", not.Title);
-                    myReader = myCommand.ExecuteReader();
-                    table.Load(myReader);
-                    myReader.Close();
-                    myCon.Close();
-                }
-            }
-
-            return new JsonResult("Added Successfully");
+            //return CreatedAtAction("GetTodoItem", new { id = todoItem.Id }, todoItem);
+            return CreatedAtAction(nameof(Get), new { id = not.Id }, not);
         }
 
 
         [HttpPut]
-        public JsonResult Put(Notification not)
+        public async Task<IActionResult> Put(int id, Notification not)
         {
-            string query = @"
-                           update dbo.Notification
-                           set Title= @Title
-                            where Id=@Id
-                            ";
 
-            DataTable table = new DataTable();
-            string sqlDataSource = _configuration.GetConnectionString("NotificationAppCon");
-            SqlDataReader myReader;
-            using (SqlConnection myCon = new SqlConnection(sqlDataSource))
-            {
-                myCon.Open();
-                using (SqlCommand myCommand = new SqlCommand(query, myCon))
-                {
-                    myCommand.Parameters.AddWithValue("@Id", not.Id);
-                    myCommand.Parameters.AddWithValue("@Title", not.Title);
-                    myReader = myCommand.ExecuteReader();
-                    table.Load(myReader);
-                    myReader.Close();
-                    myCon.Close();
-                }
-            }
+            dbContext.Entry(not).State = EntityState.Modified;
+            await dbContext.SaveChangesAsync();
 
-            return new JsonResult("Updated Successfully");
+            return NoContent();
         }
 
         [HttpDelete("{id}")]
-        public JsonResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            string query = @"
-                           delete from dbo.Notification
-                            where Id=@Id
-                            ";
+            //var notification = await _context.Notifications.FindAsync(id);
+            //if (notification == null)
+            //{
+            //    return NotFound();
+            //}
 
-            DataTable table = new DataTable();
-            string sqlDataSource = _configuration.GetConnectionString("NotificationAppCon");
-            SqlDataReader myReader;
-            using (SqlConnection myCon = new SqlConnection(sqlDataSource))
+            //_context.Notifications.Remove(notification);
+            //await _context.SaveChangesAsync();
+            var not = dbContext.Notification.FirstOrDefault(x => x.Id == id);
+            if (not == null)
             {
-                myCon.Open();
-                using (SqlCommand myCommand = new SqlCommand(query, myCon))
-                {
-                    myCommand.Parameters.AddWithValue("@Id", id);
-
-                    myReader = myCommand.ExecuteReader();
-                    table.Load(myReader);
-                    myReader.Close();
-                    myCon.Close();
-                }
+                return NotFound();
             }
 
-            return new JsonResult("Deleted Successfully");
+            dbContext.Notification.Remove(not);
+            dbContext.SaveChanges();
+
+            //var myData = await dbContext.Notification.Select(x => new
+            //{
+            //    x.Id,
+            //    x.Title
+            //}).ToListAsync();
+
+            return NoContent();
         }
 
 
